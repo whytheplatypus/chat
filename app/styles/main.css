@@ -1,0 +1,20 @@
+body {
+    background: #fafafa;
+}
+
+.hero-unit {
+    margin: 50px auto 0 auto;
+    width: 90%;
+}
+#set_server_port {
+    font-size:34px;
+}
+#chat_room {
+    display: none;
+}
+
+#messages{
+    height:256px;
+    background:white;
+    overflow:scroll;
+}
