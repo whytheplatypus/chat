@@ -1,5 +1,5 @@
 /*global define */
-define(['sjcl'], function (sjcl) {
+define(['sjcl', './alert'], function (sjcl, warn) {
     'use strict';
     
     var Chat = function(){
@@ -39,31 +39,48 @@ define(['sjcl'], function (sjcl) {
                     //self.incomming.push(conn);
                     conn.on('data', function(data) {
                         console.log('Got data:', data);
-                        var message = {
-                            from: conn.peer,
-                            meta: conn.metadata,
-                            message:sjcl.decrypt(self.password, data)
-                        };
-                        self.onupdate(message);
-                        self.messages.push(message);
+                        if(data != "ping"){
+                            var text = "";
+                            try {
+                                text = sjcl.decrypt(self.password, data);
+                            } catch(e){
+                                warn(e);
+                            }
+                            
+                            var message = {
+                                from: conn.peer,
+                                meta: conn.metadata,
+                                message: text
+                            };
+                            self.onupdate(message);
+                            self.messages.push(message);
+                        }
                     });
                     self.outgoing[conn.peer] = {open: false};
                 });
+                
+                var ping = function(){
+                    self.send('ping');
+                    setTimeout(ping, 4000);
+                };
+                ping();
+                
                 return self.peer;
             } else {
                 console.log("need to fill something out");
-                throw "need to fill something out";
+                warn("need to fill something out");
             }
         }
         function connect(id){
             console.log("connecting to "+id);
+            var connectingAlert = warn("connecting to "+id, 'alert-success');
             var conn = self.peer.connect(id);
-            /*conn.on('open', function() {
-              conn.send('Hello world!');
+            conn.on('open', function() {
+                conn.on('close', function(){
+                    delete self.outgoing[id];
+                });
+                $(connectingAlert).alert('close');
             });
-            conn.on('data', function(data){
-              console.log('Got data:', data);
-            });*/
             //still have to be able to remove connections.. i think there's an event
             self.outgoing[id] = conn;
             
@@ -73,13 +90,17 @@ define(['sjcl'], function (sjcl) {
         function send(message){
             //I could add more info to the json..
             //encript
+            var crypticMessage = message;
+            if(message != "ping")
+                crypticMessage = sjcl.encrypt(self.password, message);
+            
             for(var key in self.outgoing){
                 if(self.outgoing[key].open){
-                    self.outgoing[key].send(sjcl.encrypt(self.password, message));
+                    self.outgoing[key].send(crypticMessage);
                 } else {
                     var conn = connect(key);
                     conn.on('open', function() {
-                        conn.send(sjcl.encrypt(self.password, message));
+                        conn.send(crypticMessage);
                     });
                 }
             }

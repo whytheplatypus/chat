@@ -1,23 +1,19 @@
 require.config({
     paths: {
-        jquery: 'vendor/jquery/jquery',
-        bootstrap: 'vendor/bootstrap/index',
         sjcl: 'vendor/sjcl/index'
     },
     urlArgs: "bust=" +  (new Date()).getTime(),
     shim: {
-        boostrap: {
-            deps: ['jquery'],
-            exports: 'jquery'
-        },
         sjcl: {
             exports: 'sjcl'
         }
     }
 });
 
-require(['app', 'jquery', 'bootstrap'], function (app, $) {
+require(['app', './alert'], function (app, warn) {
     'use strict';
+    $().alert()
+    
     var startScreen = document.getElementById('setup');
     var chatRoom = document.getElementById('chat_room');
     
@@ -37,6 +33,7 @@ require(['app', 'jquery', 'bootstrap'], function (app, $) {
     var sendButton = document.getElementById("send");
     
     startButton.addEventListener('click', function(){
+        
         var chat = new app();
         var peer = chat.host(localIdString.value, {
             url: document.getElementById('server_url').value, 
@@ -45,7 +42,7 @@ require(['app', 'jquery', 'bootstrap'], function (app, $) {
         });
         peer.on('error', function(msg){
             console.log(msg);
-            document.getElementById('set_id').innerHTML("Something when wrong.. that ID may have already been taken.  Try Another one:")
+            warn(msg);
         });
         peer.on('open', function(id){
             console.log(id);
