@@ -1,6 +1,7 @@
 require.config({
     paths: {
-        sjcl: 'vendor/sjcl/index'
+        sjcl: 'vendor/sjcl/index',
+        marked: 'vendor/marked/lib/marked'
     },
     urlArgs: "bust=" +  (new Date()).getTime(),
     shim: {
@@ -10,9 +11,18 @@ require.config({
     }
 });
 
-require(['app', './alert'], function (app, warn) {
+require(['app', './alert', 'marked'], function (app, warn, marked) {
     'use strict';
-    $().alert()
+    $().alert();
+    marked.setOptions({
+      gfm: true,
+      tables: true,
+      breaks: false,
+      pedantic: false,
+      sanitize: true,
+      smartLists: true,
+      langPrefix: 'language-'
+    });
     
     var startScreen = document.getElementById('setup');
     var chatRoom = document.getElementById('chat_room');
@@ -67,7 +77,7 @@ require(['app', './alert'], function (app, warn) {
         
         chat.onupdate = function(msg){
             var message = document.createElement("p");
-            message.innerHTML = msg.from+" : "+msg.message;
+            message.innerHTML = msg.from+" : "+marked(msg.message);
             //eventually also have it put this through a markdown parser
             messages.appendChild(message);
         };
