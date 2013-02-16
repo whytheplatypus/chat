@@ -104,13 +104,16 @@ define(['sjcl', './alert'], function (sjcl, warn) {
                     });
                 }
             }
-            var msg = {
-                from: self.peer.id,
-               //meta: conn.metadata,
-                message:message
-            };
-            self.onupdate(msg);
-            self.messages.push(msg);
+            
+            if(message != "ping"){
+                var msg = {
+                    from: self.peer.id,
+                   //meta: conn.metadata,
+                    message:message
+                };
+                self.onupdate(msg);
+                self.messages.push(msg);
+            }
         }
         
         this.send = send;
