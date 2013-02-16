@@ -38,32 +38,20 @@ define(['sjcl', './alert'], function (sjcl, warn) {
                     //need a remove connection too
                     //self.incomming.push(conn);
                     conn.on('data', function(data) {
-                        console.log('Got data:', data);
-                        if(data != "ping"){
-                            var text = "";
-                            try {
-                                text = sjcl.decrypt(self.password, data);
-                            } catch(e){
-                                warn(e);
-                            }
-                            
-                            var message = {
-                                from: conn.peer,
-                                meta: conn.metadata,
-                                message: text
-                            };
-                            self.onupdate(message);
-                            self.messages.push(message);
-                        }
+                        handleData(data, conn);
                     });
-                    self.outgoing[conn.peer] = {open: false};
+                    conn.on('open', function(){
+                        self.outgoing[conn.peer] = conn;
+                    });
                 });
                 
+                //the goal here is to keep connections alive without the server.. 
+                //but i may have been wrong about why they were dying
                 var ping = function(){
                     self.send('ping');
                     setTimeout(ping, 4000);
                 };
-                ping();
+                //ping();
                 
                 return self.peer;
             } else {
@@ -71,6 +59,27 @@ define(['sjcl', './alert'], function (sjcl, warn) {
                 warn("need to fill something out");
             }
         }
+        
+        function handleData(data, conn){
+            console.log('Got data:', data);
+            if(data != "ping"){
+                var text = "";
+                try {
+                    text = sjcl.decrypt(self.password, data);
+                } catch(e){
+                    warn(e);
+                }
+                
+                var message = {
+                    from: conn.peer,
+                    meta: conn.metadata,
+                    message: text
+                };
+                self.onupdate(message);
+                self.messages.push(message);
+            }
+        }
+        
         function connect(id){
             console.log("connecting to "+id);
             var connectingAlert = warn("connecting to "+id, 'alert-success');
@@ -80,6 +89,9 @@ define(['sjcl', './alert'], function (sjcl, warn) {
                     delete self.outgoing[id];
                 });
                 $(connectingAlert).alert('close');
+            });
+            conn.on('data', function(data){
+                handleData(data, conn);
             });
             //still have to be able to remove connections.. i think there's an event
             self.outgoing[id] = conn;
