@@ -4,10 +4,9 @@ define(['sjcl', './alert'], function (sjcl, warn) {
     
     var Chat = function(){
         var self = this;
+        
         this.peer = false;
         this.password = "password";
-        //this.incomming = [];
-        this.outgoing = {};
         this.messages = [];
         
         //This should be overridden
@@ -34,25 +33,10 @@ define(['sjcl', './alert'], function (sjcl, warn) {
             }
             if(self.peer){
                 self.peer.on('connection', function(conn){
-                    
-                    //need a remove connection too
-                    //self.incomming.push(conn);
                     conn.on('data', function(data) {
                         handleData(data, conn);
                     });
-                    conn.on('open', function(){
-                        self.outgoing[conn.peer] = conn;
-                    });
                 });
-                
-                //the goal here is to keep connections alive without the server.. 
-                //but i may have been wrong about why they were dying
-                var ping = function(){
-                    self.send('ping');
-                    setTimeout(ping, 4000);
-                };
-                //ping();
-                
                 return self.peer;
             } else {
                 console.log("need to fill something out");
@@ -85,17 +69,11 @@ define(['sjcl', './alert'], function (sjcl, warn) {
             var connectingAlert = warn("connecting to "+id, 'alert-success');
             var conn = self.peer.connect(id);
             conn.on('open', function() {
-                conn.on('close', function(){
-                    delete self.outgoing[id];
-                });
                 $(connectingAlert).alert('close');
             });
             conn.on('data', function(data){
                 handleData(data, conn);
             });
-            //still have to be able to remove connections.. i think there's an event
-            self.outgoing[id] = conn;
-            
             return conn;
         }
         
@@ -106,11 +84,11 @@ define(['sjcl', './alert'], function (sjcl, warn) {
             if(message != "ping")
                 crypticMessage = sjcl.encrypt(self.password, message);
             
-            for(var key in self.outgoing){
-                if(self.outgoing[key].open){
-                    self.outgoing[key].send(crypticMessage);
+            for(var key in self.peer.connections){
+                if(self.peer.connections[key].open){
+                    self.peer.connections[key].send(crypticMessage);
                 } else {
-                    var conn = connect(key);
+                    var conn = self.peer.connections[key];
                     conn.on('open', function() {
                         conn.send(crypticMessage);
                     });
