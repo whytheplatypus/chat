@@ -4,7 +4,6 @@
   "dependencies": {
     "requirejs": "~2.1.4",
     "jquery": "~1.9.1",
-    "peerjs": "git://github.com/peers/peerjs.git#~0.1.0",
     "sjcl": "https://raw.github.com/bitwiseshiftleft/sjcl/master/sjcl.js",
     "bootstrap": "http://twitter.github.com/bootstrap/assets/js/bootstrap.js",
     "marked": "~0.2.8"
