@@ -16,12 +16,12 @@ define(['sjcl', './alert'], function (sjcl, warn) {
         
         function host(id, opts){
             self.peer = false;
-            if(opts.url !== "" && opts.port !== ""){
+            if(opts.host !== "" && opts.port !== ""){
                 if(id === ""){
                     console.log("asking for id");
-                    self.peer = new Peer({host: opts.url, port:opts.port, debug: false});
+                    self.peer = new Peer({host: opts.host, port:opts.port, debug: false});
                 } else {
-                    self.peer = new Peer(id, {host: opts.url, port:opts.port, debug: true});
+                    self.peer = new Peer(id, {host: opts.host, port:opts.port, debug: true});
                 }
             } else if(opts.key !== ""){
                 if(id === ""){
@@ -36,6 +36,14 @@ define(['sjcl', './alert'], function (sjcl, warn) {
                     conn.on('data', function(data) {
                         handleData(data, conn);
                     });
+                    deceminate({
+                       type:"connect",
+                       id:id
+                    });
+                    self.onupdate({
+                        from: conn.peer,
+                        message:"connected"
+                    });
                 });
                 return self.peer;
             } else {
@@ -46,7 +54,11 @@ define(['sjcl', './alert'], function (sjcl, warn) {
         
         function handleData(data, conn){
             console.log('Got data:', data);
-            if(data != "ping"){
+            if(data.type == 'connect'){
+                if(self.peer.connections[data.id] === undefined){
+                    connect(data.id);
+                }
+            } else if(data != "ping"){
                 var text = "";
                 try {
                     text = sjcl.decrypt(self.password, data);
@@ -64,12 +76,35 @@ define(['sjcl', './alert'], function (sjcl, warn) {
             }
         }
         
+        function deceminate(message){
+            for(var key in self.peer.connections){
+                if(self.peer.connections[key].open){
+                    self.peer.connections[key].send(message);
+                } else {
+                    var conn = self.peer.connections[key];
+                    conn.once('open', function() {
+                        conn.send(message);
+                    });
+                }
+            }
+        }
+        
         function connect(id){
-            console.log("connecting to "+id);
-            var connectingAlert = warn("connecting to "+id, 'alert-success');
+            console.log("connecting to " + id);
+            var connectingAlert = warn("connecting to " + id, 'alert-success');
+            
+            deceminate({
+               type:"connect",
+               id:id
+            });
+            
             var conn = self.peer.connect(id);
             conn.on('open', function() {
                 $(connectingAlert).alert('close');
+                self.onupdate({
+                    from: id,
+                    message:"connected"
+                });
             });
             conn.on('data', function(data){
                 handleData(data, conn);
@@ -84,16 +119,7 @@ define(['sjcl', './alert'], function (sjcl, warn) {
             if(message != "ping")
                 crypticMessage = sjcl.encrypt(self.password, message);
             
-            for(var key in self.peer.connections){
-                if(self.peer.connections[key].open){
-                    self.peer.connections[key].send(crypticMessage);
-                } else {
-                    var conn = self.peer.connections[key];
-                    conn.on('open', function() {
-                        conn.send(crypticMessage);
-                    });
-                }
-            }
+            deceminate(crypticMessage)
             
             if(message != "ping"){
                 var msg = {

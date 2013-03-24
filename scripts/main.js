@@ -24,12 +24,6 @@ require(['app', './alert', 'marked'], function (app, warn, marked) {
       langPrefix: 'language-'
     });
     
-    var startScreen = document.getElementById('setup');
-    var chatRoom = document.getElementById('chat_room');
-    
-    var localIdString = document.getElementById("local_id_string");
-    var startButton = document.getElementById("start");
-    
     var passwordString = document.getElementById('password_string');
     var setPassword = document.getElementById('set_password');
     
@@ -42,14 +36,18 @@ require(['app', './alert', 'marked'], function (app, warn, marked) {
     var messageInput = document.getElementById("message_input");
     var sendButton = document.getElementById("send");
     
-    startButton.addEventListener('click', function(){
-        
+    document.getElementById('create_peer').addEventListener('click', createPeer ,false);
+    
+    function createPeer(event){
+        var peer_options = {
+            key: this.form.key.value,
+            host: this.form.host.value,
+            port: this.form.port.value,
+            id: this.form.id.value
+        };
+        console.log(peer_options);
         var chat = new app();
-        var peer = chat.host(localIdString.value, {
-            url: document.getElementById('server_url').value, 
-            port: document.getElementById('server_port').value,
-            key: document.getElementById('peerjs_key').value
-        });
+        var peer = chat.host(peer_options.id, peer_options);
         peer.on('error', function(msg){
             console.log(msg);
             warn(msg);
@@ -70,21 +68,21 @@ require(['app', './alert', 'marked'], function (app, warn, marked) {
                 chat.send(messageInput.value);
             }, false);
             
-            //could switch this to height to get cool transitions?
-            startScreen.style.display = 'none';
-            chatRoom.style.display = 'block';
         });
         
         chat.onupdate = function(msg){
-            var message = document.createElement("p");
-            message.innerHTML = msg.from+" : "+marked(msg.message);
-            //eventually also have it put this through a markdown parser
-            messages.appendChild(message);
+            var message = document.querySelector('#message_template');
+            message.content.querySelector('h6').innerHTML = msg.from;
+            message.content.querySelector('div').innerHTML = marked(msg.message);
+            
+            messages.appendChild(message.content.cloneNode(true));
         };
-        
-    }, false);
+        $('#settings').modal('hide');
+    }
+    
+    $('#settings').modal('show');
     
     // use app here
-    console.log(app);
+    //console.log(app);
     console.log('Running jQuery %s', $().jquery);
 });
