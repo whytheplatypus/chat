@@ -55,7 +55,7 @@ define(['sjcl', './alert'], function (sjcl, warn) {
         function handleData(data, conn){
             console.log('Got data:', data);
             if(data.type == 'connect'){
-                if(self.peer.connections[data.id] === undefined){
+                if(self.peer.connections[data.id] === undefined && data.id != self.peer.id){
                     connect(data.id);
                 }
             } else if(data != "ping"){
@@ -78,13 +78,16 @@ define(['sjcl', './alert'], function (sjcl, warn) {
         
         function deceminate(message){
             for(var key in self.peer.connections){
-                if(self.peer.connections[key].open){
-                    self.peer.connections[key].send(message);
-                } else {
-                    var conn = self.peer.connections[key];
-                    conn.once('open', function() {
-                        conn.send(message);
-                    });
+                var conn = self.peer.connections[key];
+                for(var label in conn){
+                    var channel = conn[label]
+                    if(channel.open){
+                        channel.send(message);
+                    } else {
+                        channel.once('open', function() {
+                            channel.send(message);
+                        });
+                    }
                 }
             }
         }
