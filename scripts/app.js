@@ -38,7 +38,7 @@ define(['sjcl', './alert'], function (sjcl, warn) {
                     });
                     deceminate({
                        type:"connect",
-                       id:id
+                       id:conn.peer
                     });
                     self.onupdate({
                         from: conn.peer,
