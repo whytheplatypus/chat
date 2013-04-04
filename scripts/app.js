@@ -5,6 +5,7 @@ define(['sjcl', './alert'], function (sjcl, warn) {
     var Chat = function(){
         var self = this;
         
+        this.mesh = false;
         this.peer = false;
         this.password = "password";
         this.messages = [];
@@ -15,35 +16,33 @@ define(['sjcl', './alert'], function (sjcl, warn) {
         }
         
         function host(id, opts){
-            self.peer = false;
+            
             if(opts.host !== "" && opts.port !== ""){
                 if(id === ""){
                     console.log("asking for id");
                     self.peer = new Peer({host: opts.host, port:opts.port, debug: false});
                 } else {
-                    self.peer = new Peer(id, {host: opts.host, port:opts.port, debug: true});
+                    self.peer = new Peer(id, {host: opts.host, port:opts.port, debug: false});
                 }
             } else if(opts.key !== ""){
                 if(id === ""){
-                    console.log("asking for id");
+                    console.log("asking for id with key");
                     self.peer = new Peer({key:opts.key, debug: true});
+                    self.peer.on("open", function(id){console.log(id);});
                 } else {
-                    self.peer = new Peer(id, {key:opts.key, debug: true});
+                    self.peer = new Peer(id, {key:opts.key, debug: false});
                 }
             }
             if(self.peer){
-                self.peer.on('connection', function(conn){
-                    conn.on('data', function(data) {
-                        handleData(data, conn);
-                    });
-                    deceminate({
-                       type:"connect",
-                       id:conn.peer
-                    });
-                    self.onupdate({
-                        from: conn.peer,
-                        message:"connected"
-                    });
+                console.log(self.peer);
+                self.peer.on('error', function(error){
+                    console.log(error);
+                });
+                self.peer.on('open', function(id){
+                    console.log(id);
+                    self.mesh = new Mesh(self.peer);
+                    console.log(self.mesh);
+                    self.mesh.on('data', handleData);
                 });
                 return self.peer;
             } else {
@@ -52,67 +51,23 @@ define(['sjcl', './alert'], function (sjcl, warn) {
             }
         }
         
-        function handleData(data, conn){
-            console.log('Got data:', data);
-            if(data.type == 'connect'){
-                if(self.peer.connections[data.id] === undefined && data.id != self.peer.id){
-                    connect(data.id);
-                }
-            } else if(data != "ping"){
-                var text = "";
-                try {
-                    text = sjcl.decrypt(self.password, data);
-                } catch(e){
-                    warn(e);
-                }
-                
-                var message = {
-                    from: conn.peer,
-                    meta: conn.metadata,
-                    message: text
-                };
-                self.onupdate(message);
-                self.messages.push(message);
+        function handleData(data){
+            var text = "";
+            try {
+                text = sjcl.decrypt(self.password, data.message);
+            } catch(e){
+                warn(e);
             }
-        }
-        
-        function deceminate(message){
-            for(var key in self.peer.connections){
-                var conn = self.peer.connections[key];
-                for(var label in conn){
-                    var channel = conn[label]
-                    if(channel.open){
-                        channel.send(message);
-                    } else {
-                        channel.once('open', function() {
-                            channel.send(message);
-                        });
-                    }
-                }
-            }
+            
+            data.message = text;
+            
+            self.onupdate(data);
+            self.messages.push(data);
         }
         
         function connect(id){
             console.log("connecting to " + id);
-            var connectingAlert = warn("connecting to " + id, 'alert-success');
-            
-            deceminate({
-               type:"connect",
-               id:id
-            });
-            
-            var conn = self.peer.connect(id);
-            conn.on('open', function() {
-                $(connectingAlert).alert('close');
-                self.onupdate({
-                    from: id,
-                    message:"connected"
-                });
-            });
-            conn.on('data', function(data){
-                handleData(data, conn);
-            });
-            return conn;
+            self.mesh.connect(id);
         }
         
         function send(message){
@@ -122,17 +77,17 @@ define(['sjcl', './alert'], function (sjcl, warn) {
             if(message != "ping")
                 crypticMessage = sjcl.encrypt(self.password, message);
             
-            deceminate(crypticMessage)
+            var msg = {
+                from: self.mesh.peer.id,
+               //meta: conn.metadata,
+                message:crypticMessage
+            };
             
-            if(message != "ping"){
-                var msg = {
-                    from: self.peer.id,
-                   //meta: conn.metadata,
-                    message:message
-                };
-                self.onupdate(msg);
-                self.messages.push(msg);
-            }
+            self.mesh.write(msg);
+            
+            msg.message = message;
+            self.onupdate(msg);
+            self.messages.push(msg);
         }
         
         this.send = send;
