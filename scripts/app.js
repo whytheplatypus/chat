@@ -20,17 +20,16 @@ define(['sjcl', './alert'], function (sjcl, warn) {
             if(opts.host !== "" && opts.port !== ""){
                 if(id === ""){
                     console.log("asking for id");
-                    self.peer = new Peer({host: opts.host, port:opts.port, debug: false});
+                    self.peer = new Peer({host: opts.host, port:opts.port, debug: true, pex: true});
                 } else {
-                    self.peer = new Peer(id, {host: opts.host, port:opts.port, debug: false});
+                    self.peer = new Peer({host: opts.host, port:opts.port, debug: true, pex: true});
                 }
             } else if(opts.key !== ""){
                 if(id === ""){
                     console.log("asking for id with key");
-                    self.peer = new Peer({key:opts.key, debug: true});
-                    self.peer.on("open", function(id){console.log(id);});
+                    self.peer = new Peer({host: opts.host, port:opts.port, debug: true, pex: true});
                 } else {
-                    self.peer = new Peer(id, {key:opts.key, debug: false});
+                    self.peer = new Peer({host: opts.host, port:opts.port, debug: true, pex: true});
                 }
             }
             if(self.peer){
@@ -56,6 +55,8 @@ define(['sjcl', './alert'], function (sjcl, warn) {
             try {
                 text = sjcl.decrypt(self.password, data.message);
             } catch(e){
+                console.log(data);
+                console.log(e);
                 warn(e);
             }
             
