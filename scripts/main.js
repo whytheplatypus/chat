@@ -39,19 +39,13 @@ require(['app', './alert', 'marked'], function (app, warn, marked) {
     document.getElementById('create_peer').addEventListener('click', createPeer ,false);
     
     function createPeer(event){
-        var peer_options = {
-            key: this.form.key.value,
-            host: this.form.host.value,
-            port: this.form.port.value,
-            id: this.form.id.value
-        };
-        /*
+
         var peer_options = {
             id: "",
             host: 'localhost',
             port: 8000
         };
-        */
+        
         console.log(peer_options);
         var chat = new app();
         var peer = chat.host(peer_options.id, peer_options);
@@ -86,7 +80,7 @@ require(['app', './alert', 'marked'], function (app, warn, marked) {
         };
         $('#settings').modal('hide');
     }
-    //createPeer(false);
+    createPeer(false);
     $('#settings').modal('show');
     
     // use app here
