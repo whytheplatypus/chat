@@ -17,65 +17,170 @@
         <script src="scripts/vendor/bootstrap/index.js"></script>
         <!--<script src="scripts/vendor/peerjs/dist/peer.js"></script>-->
         <script type="text/javascript" src="http://cdn.peerjs.com/0/peer.js"></script>
-        <script src="scripts/mesh.js"></script>
+        <!--<script src="scripts/mesh.js"></script>-->
+        <script src="polymer-all/polymer/polymer.js"></script>
+        <script type='text/javascript' src='https://cdn.firebase.com/v0/firebase.js'></script>
+        
+        <script src="scripts/vendor/marked/lib/marked.js"></script>
+        <script>
+            marked.setOptions({
+              gfm: true,
+              tables: true,
+              breaks: false,
+              pedantic: false,
+              sanitize: true,
+              smartLists: true,
+              langPrefix: 'language-'
+            });
+        </script>
     </head>
     <body>
+        <element name="x-user-list" constructor="UserList" extends="ul">
+          <script>
+            // When <element> is in document, we might run in wrong context.
+            // Only do work when this == <element>.
+            if (this !== window) {
+              // Has built-in 'window' protection.
+              this.register({
+                prototype: {
+                  addItem: function(name, opts) {
+                    var item = document.createElement('li');
+                    item.innerHTML = name;
+                    item.id = name;
+                    item.className = opts.class || "";
+                      console.log(this);
+                      console.log(item);
+                    this.appendChild(item);
+                    return item;
+                  },
+                  removeItem: function(id){
+                    this.removeChild(document.getElementById(id));  
+                  }
+                }
+             });
+            }
+          </script>
+        </element>
+        
+        <element name="x-chat" constructor="Chat">
+            <section class="hero-unit">
+            </section>
+            <input type="text"/>
+            <button class="btn btn-primary">Send</button>
+          <script>
+            // When <element> is in document, we might run in wrong context.
+            // Only do work when this == <element>.
+            if (this !== window) {
+              var self = this;
+              var _messages = this.querySelector('section');
+              var _text = this.querySelector('input');
+              var _send = this.querySelector('button');
+                
+              
+              // Has built-in 'window' protection.
+              this.register({
+                prototype: {
+                  readyCallback: function(){
+                     var mychat = this;
+                     
+                     var messages = this.appendChild(_messages.cloneNode(true));
+                     var text = this.appendChild(_text.cloneNode(true));
+                     var send = this.appendChild(_send.cloneNode(true));
+                     send.addEventListener('click', function(){
+                        var event = new CustomEvent("send", {"detail":{"message":text.value}});
+                        mychat.dispatchEvent(event);
+                        text.value = "";
+                     }, false);
+                     text.addEventListener('keypress', function(evt){
+                        var key = evt.which || evt.keyCode;
+                        if (key == 13) { // 13 is enter
+                            var event = new CustomEvent("send", {"detail":{"message":text.value}});
+                            mychat.dispatchEvent(event);
+                            text.value = "";
+                        }
+                     }, false);
+
+                  },
+                  addMessage: function(from, text) {
+                    var message = document.querySelector('#message_template');
+                    var messages = this.querySelector('section');
+                    message.content.querySelector('h6').innerHTML = from;
+                    message.content.querySelector('div').innerHTML = marked(text);   
+                    messages.appendChild(message.content.cloneNode(true));
+                    message.scrollIntoView()
+                    return message;
+                  }
+                }
+             });
+            }
+          </script>
+        </element>
+        
+        <element name="x-chat-container" constructor="ChatContainer" extends="div">
+          <script>
+            // When <element> is in document, we might run in wrong context.
+            // Only do work when this == <element>.
+            if (this !== window) {
+              var self = this;
+
+              // Has built-in 'window' protection.
+              this.register({
+                prototype: {
+                  hideAll: function(){
+                     this.children.forEach(function(child){
+                        child.classList.remove('visible'); 
+                     });
+                  },
+                  viewSection: function(id){
+                      this.hideAll();
+                      document.getElementById(id).classList.toggle('visible');
+                  },
+                  addSection: function(node, id) {
+                    this.hideAll();
+                    node.classList.toggle("visible");
+                    node.id = id;
+                      console.log(id);
+                    this.appendChild(node);
+                  }
+                }
+             });
+            }
+          </script>
+        </element>
+        
+        
         <div class="container-fluid">
             <div id="alerts"></div>
-            <div class="navbar">
-              <div class="navbar-inner">
-                <a class="brand" href="#">P2P Chat</a>
-                <span class="navbar-text">Your id is <span class="navbar-text" id="local_id"></span></span>
-                <a href="" class="settings navbar-text muted pull-right" data-toggle="modal" data-target="#settings"><i class="icon-cog icon-large"></i></a>
-                <form class="navbar-form pull-right">
-                    <input type="text" id="password_string" value="password" class="span2">
-                    <button id="set_password" class="btn">Set</button>
-                </form>
-              </div>
-            </div>
+            
             
             <div id="settings" data-backdrop="static" class="modal fade ">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                 <form>
-                    <label>PeerJS key</label>
-                    <input type="text" value="" name="key" id="peerjs_key" placeholder="You can fill out this"/>
-                    <div class="accordion" id="accordion2">
-                      <div class="accordion-group">
-                        <div class="accordion-heading">
-                          <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" href="#server_info">
-                            Custom Server Info
-                          </a>
-                        </div>
-                        <div id="server_info" class="accordion-body collapse">
-                          <div class="accordion-inner">
-                            <p class="muted">Server defaults to peerjs if left empty.</p>
-                            <label>Server URL:</label>
-                            <input type="text" name="host" id="server_url" value="" placeholder="Or both of these"/>
-                            <label>Server Port:</label>
-                            <input type="number" class="input-small" name="port" id="server_port" value="" placeholder="1337"/>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <label>User Name</label>
                     <div class="modal-footer">
                         <span class="pull-left" id="set_id">Set id: <input type="text" name="id" id="local_id_string" placeholder="This is optional"/></span>
-                        <button id="create_peer" type="button" class="btn btn-primary">Start</button>
+                        <button id="connect" type="button" class="btn btn-primary">Connect</button>
                     </div>
                 </form>
             </div>
-            <div id="chat_room" class="hero-unit">
-                <span class="form-inline">
-                    <input type="text" id="id_string" name="connect_to" value="" />
-                    <button class="btn" type="button" id="connect">invite</button>
-                </span>
-                <div id="messages" class="container-fluid"></div>
-                <span class="form-inline"><input id="message_input" type="text"/><button type="button" class="btn" id="send">Send</button></span>
+            
+            <div class="navbar">
+              <div class="navbar-inner">
+                <a class="brand" href="#">P2P Chat</a>
+                <span class="navbar-text">Your id is <span class="navbar-text" id="local_id"></span></span>
+                <!--<a href="" class="settings navbar-text muted pull-right" data-toggle="modal" data-target="#settings"><i class="icon-cog icon-large"></i></a>
+                <form class="navbar-form pull-right">
+                    <input type="text" id="password_string" value="password" class="span2">
+                    <button id="set_password" class="btn">Set</button>
+                </form>-->
+              </div>
+            </div>
+            <div class="row">
+                <x-user-list id="user_list" class="span3"></x-user-list>
+                <x-chat-container id="chat_room" class="span9">
+                </x-chat-container>
             </div>
         </div>
-
-        <template id="chat_template">
-            
-        </template>
         
         <template id="message_template">
             <h6></h6>
