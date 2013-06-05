@@ -11,75 +11,80 @@ require.config({
     }
 });
 
-require(['app', './alert', 'marked'], function (app, warn, marked) {
+require(['app', './alert'], function (app, warn) {
     'use strict';
     $().alert();
-    marked.setOptions({
-      gfm: true,
-      tables: true,
-      breaks: false,
-      pedantic: false,
-      sanitize: true,
-      smartLists: true,
-      langPrefix: 'language-'
-    });
     
-    var passwordString = document.getElementById('password_string');
-    var setPassword = document.getElementById('set_password');
     
-    var localID = document.getElementById("local_id");
+    document.getElementById('connect').addEventListener('click', createPeer ,false);
     
-    var idString = document.getElementById("id_string");
-    var connect = document.getElementById("connect");
     
-    var messages = document.getElementById("messages");
-    var messageInput = document.getElementById("message_input");
-    var sendButton = document.getElementById("send");
-    
-    document.getElementById('create_peer').addEventListener('click', createPeer ,false);
     
     function createPeer(event){
+
+//        var peer_options = {
+//            id: "",
+//            host: 'localhost',
+//            port: 8000
+//        };
+        
         var peer_options = {
-            key: this.form.key.value,
-            host: this.form.host.value,
-            port: this.form.port.value,
-            id: this.form.id.value
-        };
+            key: "5e62xgu1fv67p66r",
+            id: document.getElementById('local_id_string').value
+        }
+        
         console.log(peer_options);
-        var chat = new app();
-        var peer = chat.host(peer_options.id, peer_options);
-        peer.on('error', function(msg){
+        var listRef = new Firebase('https://p2p-chat.firebaseio.com/user-list');
+        var App = new app(peer_options, listRef);
+        //var peer = chat.host(peer_options.id, peer_options);
+        App.peer.on('error', function(msg){
             console.log(msg);
             warn(msg);
         });
-        peer.on('open', function(id){
-            console.log(id);
-            localID.innerHTML = id;
-            
-            connect.addEventListener("click", function(){
-                chat.connect(idString.value);
+        
+        App.onchat = function(chat){
+            var chatui = new Chat();
+            //add chatui to screen
+            document.getElementById('chat_room').addSection(chatui, chat.friend.peer+"_chat");
+            document.getElementById(chat.friend.peer+"_chat").addEventListener('send', function(evt){
+                console.log("sending", evt);
+                chat.send(evt.detail.message);
             }, false);
+            chat.onmessage = function(msg){
+                document.getElementById(chat.friend.peer+"_chat").addMessage(msg.from, msg.message);
+            }
+        }
+        
+        function handleUsers(snapshot){
+            console.log(snapshot);
+            var msgData = snapshot.val();
+            if(msgData == document.getElementById('local_id').innerHTML)
+                return;
+            console.log(msgData);
+            var newPerson = document.getElementById('user_list').addItem(msgData, {
+                class:"user"
+            });
             
-            setPassword.addEventListener("click", function(){
-                chat.password = passwordString.value;
+            newPerson.addEventListener('click', function call(evt){
+                if(App.chats[newPerson.innerHTML] !== undefined){
+                    document.getElementById('chat_room').viewSection(newPerson.innerHTML+"_chat");
+                }else{
+                    var chat = App.call(newPerson.innerHTML, "password");
+                }
             }, false);
-            
-            sendButton.addEventListener("click", function(){
-                chat.send(messageInput.value);
-            }, false);
-            
+        }
+        
+        //var listRef = new Firebase('https://p2p-chat.firebaseio.com/user-list');
+        //listRef.on('value', handleUsers);
+        listRef.on('child_added', handleUsers);
+        
+        listRef.on('child_removed', function(oldChildSnapshot) {
+          console.log("removed", oldChildSnapshot);
+          document.getElementById('user_list').removeItem(oldChildSnapshot.val());
         });
         
-        chat.onupdate = function(msg){
-            var message = document.querySelector('#message_template');
-            message.content.querySelector('h6').innerHTML = msg.from;
-            message.content.querySelector('div').innerHTML = marked(msg.message);
-            
-            messages.appendChild(message.content.cloneNode(true));
-        };
         $('#settings').modal('hide');
     }
-    
     $('#settings').modal('show');
     
     // use app here
