@@ -45,7 +45,7 @@ require(['app', './alert'], function (app, warn) {
         App.onchat = function(chat){
             var chatui = new Chat();
             //add chatui to screen
-            document.getElementById('chat_room').addSection(chatui, chat.friend.peer+"_chat");
+            document.getElementById('chat_room').addSection(chatui, chat.friend.peer);
             document.getElementById(chat.friend.peer+"_chat").addEventListener('send', function(evt){
                 console.log("sending", evt);
                 chat.send(evt.detail.message);
@@ -67,7 +67,7 @@ require(['app', './alert'], function (app, warn) {
             
             newPerson.addEventListener('click', function call(evt){
                 if(App.chats[newPerson.innerHTML] !== undefined){
-                    document.getElementById('chat_room').viewSection(newPerson.innerHTML+"_chat");
+                    document.getElementById('chat_room').viewSection(newPerson.innerHTML);
                 }else{
                     var chat = App.call(newPerson.innerHTML, "password");
                 }

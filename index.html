@@ -48,8 +48,7 @@
                     item.innerHTML = name;
                     item.id = name;
                     item.className = opts.class || "";
-                      console.log(this);
-                      console.log(item);
+                    item.className += " btn";
                     this.appendChild(item);
                     return item;
                   },
@@ -133,14 +132,23 @@
                   },
                   viewSection: function(id){
                       this.hideAll();
-                      document.getElementById(id).classList.toggle('visible');
+                      document.getElementById(id+"_chat").classList.toggle('visible');
+                      document.getElementById('user_list').children.forEach(function(child){
+                          child.classList.remove('active');
+                          console.log("test");
+                      });
+                      document.getElementById(id).classList.toggle('active');
                   },
                   addSection: function(node, id) {
                     this.hideAll();
                     node.classList.toggle("visible");
-                    node.id = id;
-                      console.log(id);
+                    node.id = id+"_chat";
                     this.appendChild(node);
+                      document.getElementById('user_list').children.forEach(function(child){
+                          child.classList.remove('active');
+                          console.log("test");
+                      });
+                      document.getElementById(id).classList.toggle('active');
                   }
                 }
              });
@@ -176,7 +184,7 @@
               </div>
             </div>
             <div class="row">
-                <x-user-list id="user_list" class="span3"></x-user-list>
+                <x-user-list id="user_list" class="span3 btn-group btn-group-vertical"></x-user-list>
                 <x-chat-container id="chat_room" class="span9">
                 </x-chat-container>
             </div>
